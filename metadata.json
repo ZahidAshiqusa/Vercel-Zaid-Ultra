@@ -1,0 +1,11 @@
+{
+  "name": "Remix Remix Queen-Riam",
+  "description": "Imported from GitHub: ZahidAshiqusa/Queen-Riam",
+  "prompt": "This app was imported from GitHub repository ZahidAshiqusa/Queen-Riam.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pair your WhatsApp and start your bot</title>
+  <meta name="description" content="Pair your WhatsApp number with an 8-digit code and activate your bot instantly." />
+  <meta property="og:title" content="Pair your WhatsApp and start your bot" />
+  <meta property="og:description" content="Pair your WhatsApp number with an 8-digit code and activate your bot instantly." />
+  <meta name="theme-color" content="#09090b" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <script>
+    (function() {
+      try {
+        if ('caches' in window) {
+          caches.keys().then(function(keys) {
+            keys.forEach(function(k) { caches.delete(k); });
+          });
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            regs.forEach(function(r) { r.update(); });
+          });
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background-color: #09090b;
+      color: #f4f4f5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col justify-center items-center px-4 py-10 selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <main class="w-full max-w-md">
+    <!-- Primary Pairing Surface -->
+    <section class="bg-[#121216] border border-zinc-800/90 rounded-2xl p-6 sm:p-8">
+
+      <!-- Heading -->
+      <header class="mb-6">
+        <h1 class="text-2xl sm:text-[26px] font-semibold tracking-tight text-zinc-50 leading-snug" style="text-wrap: balance;">
+          Pair your WhatsApp and start your bot.
+        </h1>
+      </header>
+
+      <!-- STEP 1: Number Input Form -->
+      <form id="pairForm" class="space-y-4" novalidate>
+        <div>
+          <label for="phoneInput" class="block text-sm font-medium text-zinc-300 mb-2">
+            WhatsApp Number
+          </label>
+          <input
+            id="phoneInput"
+            name="phoneNumber"
+            type="tel"
+            inputmode="numeric"
+            autocomplete="tel"
+            placeholder="923001234567"
+            required
+            class="w-full h-12 px-4 rounded-xl bg-[#09090b] border border-zinc-800 text-zinc-100 placeholder-zinc-600 font-mono text-base tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+          />
+          <p class="mt-2 text-xs text-zinc-500">
+            Include country code without spaces or symbols.
+          </p>
+        </div>
+
+        <button
+          id="pairBtn"
+          type="submit"
+          class="w-full h-12 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm tracking-wide transition-all duration-150 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121216] whitespace-nowrap"
+        >
+          <span id="pairBtnText">Get Pairing Code</span>
+        </button>
+      </form>
+
+      <!-- Error Message -->
+      <div
+        id="errorBox"
+        role="alert"
+        class="hidden mt-4 px-4 py-3 rounded-xl bg-red-950/50 border border-red-900/70 text-red-200 text-sm leading-relaxed"
+      ></div>
+
+      <!-- STEP 2: Pairing Code Display -->
+      <div id="codeSection" class="hidden space-y-5">
+        <div class="pt-1">
+          <div class="flex items-center justify-between text-xs text-zinc-400 mb-2">
+            <span>Pairing code for <span id="pairedNumberLabel" class="font-mono text-zinc-200"></span></span>
+            <span id="codeStatusText" class="text-amber-400 font-medium">Waiting for link</span>
+          </div>
+
+          <div class="bg-[#09090b] border border-zinc-800 rounded-xl px-4 py-5 text-center">
+            <div
+              id="pairingCodeDisplay"
+              class="font-mono text-3xl sm:text-4xl font-bold tracking-[0.22em] text-zinc-50 select-all tabular-nums"
+            >
+              ---- ----
+            </div>
+          </div>
+
+          <p class="mt-3 text-xs text-zinc-400 leading-relaxed">
+            Open WhatsApp &rarr; Linked Devices &rarr; Link a Device &rarr; Link with phone number, then enter this code.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            id="copyCodeBtn"
+            type="button"
+            class="flex-1 h-11 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-semibold text-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 whitespace-nowrap"
+          >
+            Copy Code
+          </button>
+          <button
+            id="cancelPairBtn"
+            type="button"
+            class="h-11 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-sm transition-colors whitespace-nowrap"
+          >
+            New Number
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Activated Confirmation (No Dashboard Shown) -->
+      <div id="activatedSection" class="hidden space-y-5">
+        <div class="py-2">
+          <p class="text-sm font-semibold text-emerald-400 mb-1">Bot Activated</p>
+          <p class="text-base text-zinc-200 leading-relaxed">
+            <span id="activatedNumberLabel" class="font-mono font-semibold text-white"></span> is now linked and running.
+          </p>
+        </div>
+
+        <button
+          id="pairAnotherBtn"
+          type="button"
+          class="w-full h-12 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-semibold text-sm tracking-wide transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 whitespace-nowrap"
+        >
+          Pair Another Number
+        </button>
+      </div>
+
+      <!-- Bottom Divider & Active Bots Tab -->
+      <div class="mt-7 pt-5 border-t border-zinc-800/80">
+        <div class="flex items-center justify-between gap-4">
+          <button
+            id="activeBotsTabBtn"
+            type="button"
+            aria-expanded="false"
+            aria-controls="activeBotsPanel"
+            class="flex items-center gap-3 text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-lg py-1"
+          >
+            <span class="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors whitespace-nowrap">
+              Active Bots
+            </span>
+            <span class="text-xs text-zinc-500" aria-hidden="true">&middot;</span>
+            <span class="text-sm font-mono tabular-nums text-zinc-200 whitespace-nowrap">
+              <span id="totalActiveCount" class="font-semibold text-white">0</span> Total
+            </span>
+            <span class="text-xs text-zinc-500" aria-hidden="true">/</span>
+            <span class="text-sm font-mono tabular-nums text-emerald-400 whitespace-nowrap">
+              <span id="onlineActiveCount" class="font-semibold">0</span> Online
+            </span>
+          </button>
+
+          <button
+            id="refreshStatsBtn"
+            type="button"
+            aria-label="Refresh active bots count"
+            class="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors py-1.5 px-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 whitespace-nowrap shrink-0"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <!-- Expandable Minimal Active Bots List -->
+        <div id="activeBotsPanel" class="hidden mt-4 pt-4 border-t border-zinc-800/60">
+          <div id="activeBotsList" class="space-y-2 max-h-48 overflow-y-auto">
+            <p class="text-xs text-zinc-500">No active bots yet.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      const pairForm = document.getElementById('pairForm');
+      const phoneInput = document.getElementById('phoneInput');
+      const pairBtn = document.getElementById('pairBtn');
+      const pairBtnText = document.getElementById('pairBtnText');
+      const errorBox = document.getElementById('errorBox');
+
+      const codeSection = document.getElementById('codeSection');
+      const pairedNumberLabel = document.getElementById('pairedNumberLabel');
+      const pairingCodeDisplay = document.getElementById('pairingCodeDisplay');
+      const codeStatusText = document.getElementById('codeStatusText');
+      const copyCodeBtn = document.getElementById('copyCodeBtn');
+      const cancelPairBtn = document.getElementById('cancelPairBtn');
+
+      const activatedSection = document.getElementById('activatedSection');
+      const activatedNumberLabel = document.getElementById('activatedNumberLabel');
+      const pairAnotherBtn = document.getElementById('pairAnotherBtn');
+
+      const activeBotsTabBtn = document.getElementById('activeBotsTabBtn');
+      const activeBotsPanel = document.getElementById('activeBotsPanel');
+      const activeBotsList = document.getElementById('activeBotsList');
+      const totalActiveCountEl = document.getElementById('totalActiveCount');
+      const onlineActiveCountEl = document.getElementById('onlineActiveCount');
+      const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+
+      let activePollTimer = null;
+      let currentCode = '';
+      let currentCleanNumber = '';
+      let statsPanelOpen = false;
+
+      function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove('hidden');
+      }
+
+      function clearError() {
+        errorBox.textContent = '';
+        errorBox.classList.add('hidden');
+      }
+
+      function stopPolling() {
+        if (activePollTimer) {
+          clearInterval(activePollTimer);
+          activePollTimer = null;
+        }
+      }
+
+      function resetToInput() {
+        stopPolling();
+        clearError();
+        currentCode = '';
+        currentCleanNumber = '';
+        codeSection.classList.add('hidden');
+        activatedSection.classList.add('hidden');
+        pairForm.classList.remove('hidden');
+        phoneInput.value = '';
+        phoneInput.focus();
+      }
+
+      function showCodeView(cleanNumber, code) {
+        clearError();
+        currentCleanNumber = cleanNumber;
+        currentCode = code;
+        pairedNumberLabel.textContent = '+' + cleanNumber;
+        pairingCodeDisplay.textContent = code;
+        codeStatusText.textContent = 'Waiting for link';
+        codeStatusText.className = 'text-amber-400 font-medium';
+        copyCodeBtn.textContent = 'Copy Code';
+        pairForm.classList.add('hidden');
+        activatedSection.classList.add('hidden');
+        codeSection.classList.remove('hidden');
+      }
+
+      function showActivatedView(cleanNumber) {
+        stopPolling();
+        clearError();
+        activatedNumberLabel.textContent = '+' + cleanNumber;
+        pairForm.classList.add('hidden');
+        codeSection.classList.add('hidden');
+        activatedSection.classList.remove('hidden');
+        fetchActiveStats();
+      }
+
+      function startStatusPolling(cleanNumber) {
+        stopPolling();
+        let attempts = 0;
+        const maxAttempts = 60; // ~3 minutes
+
+        activePollTimer = setInterval(async () => {
+          attempts++;
+          if (attempts > maxAttempts) {
+            stopPolling();
+            codeStatusText.textContent = 'Code expired';
+            codeStatusText.className = 'text-red-400 font-medium';
+            return;
+          }
+          try {
+            const res = await fetch('/api/pair/status/' + encodeURIComponent(cleanNumber), {
+              cache: 'no-store'
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.connected) {
+              showActivatedView(cleanNumber);
+            } else if (data.reconnecting) {
+              codeStatusText.textContent = 'Connecting';
+              codeStatusText.className = 'text-emerald-400 font-medium';
+            }
+          } catch (_) {}
+        }, 3000);
+      }
+
+      async function fetchActiveStats() {
+        try {
+          const res = await fetch('/api/bots/stats', { cache: 'no-store' });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data.success) return;
+
+          const total = Number(data.totalActiveCount || 0);
+          const online = Number(data.onlineCount || 0);
+          totalActiveCountEl.textContent = String(total);
+          onlineActiveCountEl.textContent = String(online);
+
+          const bots = Array.isArray(data.bots) ? data.bots : [];
+          if (bots.length === 0) {
+            activeBotsList.innerHTML = '<p class="text-xs text-zinc-500">No active bots yet.</p>';
+          } else {
+            activeBotsList.innerHTML = bots.map((bot) => {
+              const statusLabel = bot.online
+                ? '<span class="text-xs font-medium text-emerald-400">Online</span>'
+                : (bot.status === 'connecting'
+                    ? '<span class="text-xs font-medium text-amber-400">Connecting</span>'
+                    : '<span class="text-xs font-medium text-zinc-400">Active</span>');
+              return (
+                '<div class="flex items-center justify-between py-2 border-b border-zinc-800/50 last:border-b-0">' +
+                  '<span class="font-mono text-xs text-zinc-200 tabular-nums">' + bot.maskedNumber + '</span>' +
+                  statusLabel +
+                '</div>'
+              );
+            }).join('');
+          }
+        } catch (_) {}
+      }
+
+      pairForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearError();
+
+        const rawNumber = (phoneInput.value || '').trim();
+        const digits = rawNumber.replace(/\D/g, '');
+        if (!digits || digits.length < 7) {
+          showError('Please enter a valid WhatsApp number with country code (e.g. 923001234567).');
+          phoneInput.focus();
+          return;
+        }
+
+        pairBtn.disabled = true;
+        pairBtnText.textContent = 'Generating Code...';
+
+        try {
+          const res = await fetch('/api/pair', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phoneNumber: rawNumber })
+          });
+
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success || !data.code) {
+            throw new Error(data.error || 'Could not generate pairing code. Please try again.');
+          }
+
+          showCodeView(data.cleanNumber || digits, data.code);
+          startStatusPolling(data.cleanNumber || digits);
+        } catch (err) {
+          showError(err.message || 'Failed to request pairing code.');
+        } finally {
+          pairBtn.disabled = false;
+          pairBtnText.textContent = 'Get Pairing Code';
+        }
+      });
+
+      copyCodeBtn.addEventListener('click', async () => {
+        if (!currentCode) return;
+        try {
+          await navigator.clipboard.writeText(currentCode.replace(/-/g, ''));
+          copyCodeBtn.textContent = 'Copied';
+          setTimeout(() => {
+            copyCodeBtn.textContent = 'Copy Code';
+          }, 1800);
+        } catch (_) {
+          const range = document.createRange();
+          range.selectNodeContents(pairingCodeDisplay);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      });
+
+      cancelPairBtn.addEventListener('click', resetToInput);
+      pairAnotherBtn.addEventListener('click', resetToInput);
+
+      activeBotsTabBtn.addEventListener('click', () => {
+        statsPanelOpen = !statsPanelOpen;
+        activeBotsTabBtn.setAttribute('aria-expanded', String(statsPanelOpen));
+        activeBotsPanel.classList.toggle('hidden', !statsPanelOpen);
+        if (statsPanelOpen) {
+          fetchActiveStats();
+        }
+      });
+
+      refreshStatsBtn.addEventListener('click', () => {
+        refreshStatsBtn.textContent = 'Updating...';
+        fetchActiveStats().finally(() => {
+          setTimeout(() => {
+            refreshStatsBtn.textContent = 'Refresh';
+          }, 300);
+        });
+      });
+
+      // Initial stats load + periodic live sync
+      fetchActiveStats();
+      setInterval(fetchActiveStats, 15000);
+    })();
+  </script>
+</body>
+</html>

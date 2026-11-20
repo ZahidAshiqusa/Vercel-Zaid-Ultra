@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "id": "0029VbDrzIw5K3zThk4N2u0A",
+      "channelJid": null,
+      "inviteCode": "0029VbDrzIw5K3zThk4N2u0A",
+      "inviteUrl": "https://whatsapp.com/channel/0029VbDrzIw5K3zThk4N2u0A",
+      "channelName": "Official Multi-Bot Channel",
+      "emoji": "🎲 Random",
+      "randomReact": true,
+      "autoFollow": true,
+      "isDefault": true,
+      "enabled": true,
+      "reactCount": 0,
+      "lastReactedAt": null
+    }
+  ]
+}
