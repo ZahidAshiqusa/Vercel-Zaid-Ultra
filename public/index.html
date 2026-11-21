@@ -259,7 +259,7 @@
 
       function stopPolling() {
         if (activePollTimer) {
-          clearInterval(activePollTimer);
+          clearTimeout(activePollTimer);
           activePollTimer = null;
         }
       }
@@ -303,9 +303,10 @@
       function startStatusPolling(cleanNumber) {
         stopPolling();
         let attempts = 0;
-        const maxAttempts = 60; // ~3 minutes
+        const maxAttempts = 50; // ~3 minutes
 
-        activePollTimer = setInterval(async () => {
+        async function pollOnce() {
+          if (currentCleanNumber !== cleanNumber) return;
           attempts++;
           if (attempts > maxAttempts) {
             stopPolling();
@@ -317,16 +318,23 @@
             const res = await fetch('/api/pair/status/' + encodeURIComponent(cleanNumber), {
               cache: 'no-store'
             });
-            if (!res.ok) return;
-            const data = await res.json();
-            if (data.connected) {
-              showActivatedView(cleanNumber);
-            } else if (data.reconnecting) {
-              codeStatusText.textContent = 'Connecting';
-              codeStatusText.className = 'text-emerald-400 font-medium';
+            if (res.ok) {
+              const data = await res.json();
+              if (data.connected) {
+                showActivatedView(cleanNumber);
+                return;
+              } else if (data.reconnecting) {
+                codeStatusText.textContent = 'Connecting';
+                codeStatusText.className = 'text-emerald-400 font-medium';
+              }
             }
           } catch (_) {}
-        }, 3000);
+          if (currentCleanNumber === cleanNumber) {
+            activePollTimer = setTimeout(pollOnce, 1200);
+          }
+        }
+
+        activePollTimer = setTimeout(pollOnce, 800);
       }
 
       async function fetchActiveStats() {

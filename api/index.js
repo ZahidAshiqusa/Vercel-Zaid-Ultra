@@ -83,7 +83,8 @@ app.get(['/health', '/api/health'], (req, res) => {
     });
 });
 
-// Dedicated cron-job.org 5-minute keep-alive endpoint
+// Dedicated cron-job.org keep-alive & active message processing window
+// Supports ?hold=40 (seconds, max 48s) so Vercel stays awake to receive & reply to WhatsApp messages!
 app.get(['/api/cron', '/api/ping', '/cron', '/ping'], async (req, res) => {
     try {
         const sm = getSessionManager();
@@ -98,11 +99,21 @@ app.get(['/api/cron', '/api/ping', '/cron', '/ping'], async (req, res) => {
                 timestamp: new Date().toISOString()
             });
         }
-        const stats = await sm.ensureSessionsAlive();
+        const defaultHoldSec = process.env.VERCEL ? 25 : 0;
+        const requestedHoldSec = req.query.hold !== undefined ? Number(req.query.hold) : defaultHoldSec;
+        const holdAliveMs = Number.isFinite(requestedHoldSec)
+            ? Math.min(Math.max(requestedHoldSec, 0), 48) * 1000
+            : defaultHoldSec * 1000;
+
+        const stats = await sm.ensureSessionsAlive({
+            waitForConnectMs: process.env.VERCEL ? 10000 : 2000,
+            holdAliveMs
+        });
         return res.status(200).json({
             ok: true,
             status: 'alive',
             runtime: process.env.VERCEL ? 'vercel' : 'node',
+            holdSeconds: Math.round(holdAliveMs / 1000),
             ...stats
         });
     } catch (err) {
@@ -113,6 +124,25 @@ app.get(['/api/cron', '/api/ping', '/cron', '/ping'], async (req, res) => {
             error: err.message,
             timestamp: new Date().toISOString()
         });
+    }
+});
+
+// Diagnostics endpoint (JSON-only for troubleshooting live deployments)
+app.get('/api/debug', async (req, res) => {
+    try {
+        const sm = getSessionManager();
+        const diag = sm?.getDiagnostics ? sm.getDiagnostics() : null;
+        return res.status(200).json({
+            ok: true,
+            runtime: process.env.VERCEL ? 'vercel' : 'node',
+            nodeVersion: process.version,
+            sessionManagerLoaded: Boolean(sm),
+            sessionManagerError: _sessionManagerErr ? _sessionManagerErr.message : null,
+            diagnostics: diag,
+            timestamp: new Date().toISOString()
+        });
+    } catch (err) {
+        return res.status(200).json({ ok: false, error: err.message });
     }
 });
 
@@ -192,14 +222,16 @@ const handlePair = async (req, res) => {
 
 app.post(['/api/pair', '/api/session/pair'], handlePair);
 
-// Live pairing status polling
-app.get('/api/pair/status/:number', (req, res) => {
+// Live pairing status polling (briefly holds open on Vercel during pairing handshake so CPU stays active)
+app.get('/api/pair/status/:number', async (req, res) => {
     try {
         const sm = getSessionManager();
         if (!sm || typeof sm.getSessionStatus !== 'function') {
             return res.status(200).json({ success: true, connected: false, pending: false, reconnecting: false });
         }
-        const status = sm.getSessionStatus(req.params.number);
+        const status = (process.env.VERCEL && typeof sm.waitForPairingProgress === 'function')
+            ? await sm.waitForPairingProgress(req.params.number, 4000)
+            : sm.getSessionStatus(req.params.number);
         return res.status(200).json({ success: true, ...status });
     } catch (err) {
         return res.status(200).json({ success: false, connected: false, error: err.message });
